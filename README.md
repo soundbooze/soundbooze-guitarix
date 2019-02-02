@@ -7,6 +7,7 @@ Patches for guitarix
 ## TODO
 
 - MinMaxScaler
+- Glib::SignalTimeout priority
 -
 
 ## Demo
