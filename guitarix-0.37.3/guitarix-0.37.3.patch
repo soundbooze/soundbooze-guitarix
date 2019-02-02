@@ -1,0 +1,162 @@
+diff -Naur guitarix-0.37.3/src/gx_head/engine/gx_jack.cpp guitarix-0.37.3-patch/src/gx_head/engine/gx_jack.cpp
+--- guitarix-0.37.3/src/gx_head/engine/gx_jack.cpp	2018-07-22 11:24:50.000000000 +0700
++++ guitarix-0.37.3-patch/src/gx_head/engine/gx_jack.cpp	2019-02-02 10:48:09.378798002 +0700
+@@ -381,7 +381,8 @@
+ 		
+ 	// create buffer to bypass the insert ports
+     insert_buffer = new float[jack_bs];
+-    
++    insert_buffer_copy = new float[jack_bs];
++
+     gx_jack_callbacks();
+     client_change(); // might load port connection definitions
+     if (opt.get_jack_uuid().empty() && !opt.get_jack_noconnect()) {
+@@ -448,7 +449,9 @@
+     if (!single_client) jack_client_close(client_insert);
+     client_insert = 0;
+     delete[] insert_buffer;
+-    insert_buffer = NULL;
++    delete[] insert_buffer_copy;
++
++    insert_buffer = insert_buffer_copy = NULL;
+     client_change();
+ }
+ 
+@@ -763,6 +766,7 @@
+ 
+     if (self.bypass_insert && !self.single_client) {
+         memcpy(self.insert_buffer, obuf, nframes*sizeof(float));
++        memcpy(self.insert_buffer_copy, obuf, nframes*sizeof(float));
+     }
+ 
+         // midi input processing
+@@ -811,6 +815,7 @@
+     }
+     gx_system::measure_stop();
+     self.engine.stereo_chain.post_rt_finished();
++
+     return 0;
+ }
+ 
+@@ -968,8 +973,12 @@
+     self.buffersize_change();
+ 	// create buffer to bypass the insert ports
+ 	delete[] self.insert_buffer;
+-	self.insert_buffer = NULL;
++  delete[] self.insert_buffer_copy;
++
++	self.insert_buffer = self.insert_buffer_copy = NULL;
+     self.insert_buffer = new float[self.jack_bs];
++    self.insert_buffer_copy = new float[self.jack_bs];
++
+     return 0;
+ }
+ 
+diff -Naur guitarix-0.37.3/src/gx_head/gui/liveplay.cpp guitarix-0.37.3-patch/src/gx_head/gui/liveplay.cpp
+--- guitarix-0.37.3/src/gx_head/gui/liveplay.cpp	2018-07-22 11:24:50.000000000 +0700
++++ guitarix-0.37.3-patch/src/gx_head/gui/liveplay.cpp	2019-02-02 10:48:26.154615492 +0700
+@@ -100,7 +100,6 @@
+     return true;
+ }
+ 
+-
+ /****************************************************************
+  ** class Liveplay
+  */
+@@ -231,7 +230,6 @@
+     return true;
+ }
+ 
+-
+ Liveplay::Liveplay(
+     const gx_system::CmdlineOptions& options, gx_engine::GxMachineBase& machine_,
+     const std::string& fname, const GxActions& actions_)
+@@ -438,22 +436,44 @@
+ 	window->hide();
+     }
+     actions.livetuner->toggled();
++
+ }
+ 
+ bool Liveplay::window_expose_event(GdkEventExpose *event) {
+-    Cairo::RefPtr<Cairo::Context> cr = Glib::wrap(event->window, true)->create_cairo_context();
+-    Gtk::Allocation a = liveplay_canvas->get_allocation();
+-    Gdk::Region region(a);
+-    region.intersect(Glib::wrap(event->region, true));
+-    Gdk::Cairo::add_region_to_path(cr, region);
+-    cr->clip();
+-    cr->set_operator(Cairo::OPERATOR_SOURCE);
+-    cr->set_source_rgb(0,0,0);
+-    cr->paint();
+-    //gdk_cairo_set_source_window(cr->cobj(), liveplay_canvas->get_window()->gobj(), a.get_x(), a.get_y()); gtk 2.24
+-    gdk_cairo_set_source_pixmap(cr->cobj(), liveplay_canvas->get_window()->gobj(), a.get_x(), a.get_y());
+-    cr->paint_with_alpha(pow(brightness_adj->get_value(),2.2));
+-    return false;
++  Cairo::RefPtr<Cairo::Context> cr = Glib::wrap(event->window, true)->create_cairo_context();
++  Gtk::Allocation a = liveplay_canvas->get_allocation();
++  Gdk::Region region(a);
++  region.intersect(Glib::wrap(event->region, true));
++  Gdk::Cairo::add_region_to_path(cr, region);
++  cr->clip();
++  cr->set_operator(Cairo::OPERATOR_SOURCE);
++  cr->set_source_rgb(0,0,0);
++  cr->paint();
++  //gdk_cairo_set_source_window(cr->cobj(), liveplay_canvas->get_window()->gobj(), a.get_x(), a.get_y()); gtk 2.24
++  gdk_cairo_set_source_pixmap(cr->cobj(), liveplay_canvas->get_window()->gobj(), a.get_x(), a.get_y());
++  cr->paint_with_alpha(pow(brightness_adj->get_value(),2.2));
++
++  cr->save();
++  cr->set_line_width(6.0);
++  cr->set_source_rgb(0.3, 0.3, 0.3);
++  cr->move_to(0, 400);
++  cr->line_to(1280, 400);
++  cr->stroke();
++
++  for (int ii = 0; ii < (int) machine.get_jack()->get_jack_bs(); ii++) {
++    float f = machine.get_jack()->insert_buffer_copy[ii];
++    cr->move_to(ii*10, 400);
++    cr->line_to(ii*10, 400 + f * 30);
++    cr->stroke();
++  }
++  cr->restore();
++
++  return false;
++}
++
++bool Liveplay::on_anim_timeout() {
++  window->queue_draw();
++	return true;
+ }
+ 
+ bool Liveplay::on_delete(GdkEventAny *ev) {
+@@ -476,6 +496,7 @@
+ 
+ void Liveplay::on_realize() {
+     liveplay_canvas->get_window()->set_composited(true);
++    Glib::signal_timeout().connect( sigc::mem_fun(*this, &Liveplay::on_anim_timeout), 10);
+ }
+ 
+ class MidiControllerDisplay: public Gtk::ProgressBar {
+diff -Naur guitarix-0.37.3/src/headers/gx_jack.h guitarix-0.37.3-patch/src/headers/gx_jack.h
+--- guitarix-0.37.3/src/headers/gx_jack.h	2018-07-22 11:24:50.000000000 +0700
++++ guitarix-0.37.3-patch/src/headers/gx_jack.h	2019-02-02 10:49:23.257949736 +0700
+@@ -181,6 +181,8 @@
+     bool                get_is_rt() { return client ? jack_is_realtime(client) : false; }
+     jack_nframes_t      get_time_is() { return client ? jack_frame_time(client) : 0; }
+ 
++    float               *insert_buffer_copy;
++
+ public:
+     GxJack(gx_engine::GxEngine& engine_);
+     ~GxJack();
+diff -Naur guitarix-0.37.3/src/headers/gx_main_window.h guitarix-0.37.3-patch/src/headers/gx_main_window.h
+--- guitarix-0.37.3/src/headers/gx_main_window.h	2018-07-22 11:24:50.000000000 +0700
++++ guitarix-0.37.3-patch/src/headers/gx_main_window.h	2019-02-02 10:49:42.193714671 +0700
+@@ -132,6 +132,7 @@
+     bool pointer_motion(GdkEventMotion* event);
+     void display(const Glib::ustring& bank, const Glib::ustring& preset);
+     void set_display_state(TunerSwitcher::SwitcherState s);
++    bool on_anim_timeout();
+ public:
+     Liveplay(const gx_system::CmdlineOptions& options, gx_engine::GxMachineBase& machine,
+ 	     const std::string& fname, const GxActions& actions);
