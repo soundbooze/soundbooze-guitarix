@@ -4,6 +4,11 @@
 
 Patches for guitarix 
 
+## TODO
+
+- MinMaxScaler
+-
+
 ## Demo
 
 - (https://www.youtube.com/watch?v=DEO1HnN7K_g)
