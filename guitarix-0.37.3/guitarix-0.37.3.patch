@@ -54,7 +54,7 @@ diff -Naur guitarix-0.37.3/src/gx_head/engine/gx_jack.cpp guitarix-0.37.3-patch/
  
 diff -Naur guitarix-0.37.3/src/gx_head/gui/liveplay.cpp guitarix-0.37.3-patch/src/gx_head/gui/liveplay.cpp
 --- guitarix-0.37.3/src/gx_head/gui/liveplay.cpp	2018-07-22 11:24:50.000000000 +0700
-+++ guitarix-0.37.3-patch/src/gx_head/gui/liveplay.cpp	2019-02-02 10:48:26.154615492 +0700
++++ guitarix-0.37.3-patch/src/gx_head/gui/liveplay.cpp	2019-02-02 11:52:22.533878098 +0700
 @@ -100,7 +100,6 @@
      return true;
  }
@@ -71,7 +71,7 @@ diff -Naur guitarix-0.37.3/src/gx_head/gui/liveplay.cpp guitarix-0.37.3-patch/sr
  Liveplay::Liveplay(
      const gx_system::CmdlineOptions& options, gx_engine::GxMachineBase& machine_,
      const std::string& fname, const GxActions& actions_)
-@@ -438,22 +436,44 @@
+@@ -438,22 +436,47 @@
  	window->hide();
      }
      actions.livetuner->toggled();
@@ -105,17 +105,20 @@ diff -Naur guitarix-0.37.3/src/gx_head/gui/liveplay.cpp guitarix-0.37.3-patch/sr
 +  gdk_cairo_set_source_pixmap(cr->cobj(), liveplay_canvas->get_window()->gobj(), a.get_x(), a.get_y());
 +  cr->paint_with_alpha(pow(brightness_adj->get_value(),2.2));
 +
++  const int width = a.get_width();
++  const int height = a.get_height();
++
 +  cr->save();
 +  cr->set_line_width(6.0);
 +  cr->set_source_rgb(0.3, 0.3, 0.3);
-+  cr->move_to(0, 400);
-+  cr->line_to(1280, 400);
++  cr->move_to(0, height/2);
++  cr->line_to(width, height/2);
 +  cr->stroke();
 +
 +  for (int ii = 0; ii < (int) machine.get_jack()->get_jack_bs(); ii++) {
 +    float f = machine.get_jack()->insert_buffer_copy[ii];
-+    cr->move_to(ii*10, 400);
-+    cr->line_to(ii*10, 400 + f * 30);
++    cr->move_to(ii*10, height/2);
++    cr->line_to(ii*10, height/2 + f * 30);
 +    cr->stroke();
 +  }
 +  cr->restore();
@@ -129,7 +132,7 @@ diff -Naur guitarix-0.37.3/src/gx_head/gui/liveplay.cpp guitarix-0.37.3-patch/sr
  }
  
  bool Liveplay::on_delete(GdkEventAny *ev) {
-@@ -476,6 +496,7 @@
+@@ -476,6 +499,7 @@
  
  void Liveplay::on_realize() {
      liveplay_canvas->get_window()->set_composited(true);
