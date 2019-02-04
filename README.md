@@ -12,7 +12,7 @@ Patches for guitarix
 
 ## Demo
 
-- (https://www.youtube.com/watch?v=NcL7PC1qjNo)
+- (https://www.youtube.com/watch?v=IQndBp3pi_8)
 
 ___
 
