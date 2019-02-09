@@ -4,6 +4,10 @@
 
 Patches for guitarix 
 
+## Jam
+
+- (https://github.com/soundbooze/soundbooze-guitarix/tree/master/jam)
+
 ## TODO
 
 - MinMaxScaler
