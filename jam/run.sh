@@ -1,6 +1,8 @@
 #!/bin/sh
 
-jalv.gtk3 http://gareus.org/oss/lv2/convoLV2#Stereo &
+killall guitarix > /dev/null 2>&1
+killall jack_thru > /dev/null 2>&1
+
 guitarix &
 jack_thru &
 
@@ -11,22 +13,27 @@ jack_disconnect 'jack_thru:output_2' 'system:playback_2'
 
 jack_connect 'system:capture_1' 'gx_head_amp:in_0'
 
-jack_connect 'gx_head_fx:out_0' 'LV2 Convolution Stereo:in_1'
-jack_connect 'gx_head_fx:out_1' 'LV2 Convolution Stereo:in_2'
+# guitarix -> convolver
+jack_connect 'gx_head_fx:out_0' 'effect_1:in_1'
+jack_connect 'gx_head_fx:out_1' 'effect_1:in_2'
 
-jack_connect 'LV2 Convolution Stereo:out_1' 'system:playback_1'
-jack_connect 'LV2 Convolution Stereo:out_2' 'system:playback_2'
+# convolver -> playback
+jack_connect 'effect_1:out_1' 'system:playback_1'
+jack_connect 'effect_1:out_2' 'system:playback_2'
 
-jack_connect 'LV2 Convolution Stereo:out_1' 'effect_0:in_l' 
-jack_connect 'LV2 Convolution Stereo:out_2' 'effect_0:in_r' 
+# convolver -> delay
+jack_connect 'effect_1:out_1' 'effect_0:in_l' 
+jack_connect 'effect_1:out_2' 'effect_0:in_r' 
 
 jack_connect 'effect_0:out_l' 'system:playback_1'
 jack_connect 'effect_0:out_r' 'system:playback_2'
 
 # Jack Thru
 
-jack_connect 'LV2 Convolution Stereo:out_1' 'jack_thru:input_1'
-jack_connect 'LV2 Convolution Stereo:out_2' 'jack_thru:input_2'
-
+# delay 
 jack_connect 'effect_0:out_l' 'jack_thru:input_1'
 jack_connect 'effect_0:out_r' 'jack_thru:input_2'
+
+# convolver
+jack_connect 'effect_1:out_1' 'jack_thru:input_1'
+jack_connect 'effect_1:out_2' 'jack_thru:input_2'

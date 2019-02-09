@@ -34,3 +34,5 @@ def send_command(command):
         return False
 
 send_command('add http://calf.sourceforge.net/plugins/VintageDelay 0')
+send_command('add http://gareus.org/oss/lv2/convoLV2#Stereo 1')
+send_command('param_set 1 impulse %s' % "/home/oche/uduk.wav")
