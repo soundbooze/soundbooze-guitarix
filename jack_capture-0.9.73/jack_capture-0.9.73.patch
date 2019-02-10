@@ -1,0 +1,23 @@
+diff -Naur jack_capture/jack_capture.c jack_capture_patch/jack_capture.c
+--- jack_capture/jack_capture.c	2019-02-10 17:35:24.959886773 +0700
++++ jack_capture_patch/jack_capture.c	2019-02-10 17:26:19.383498872 +0700
+@@ -301,8 +301,8 @@
+ // buffer size in bytes = block size in bytes * num_channels
+ 
+ 
+-static int64_t seconds_to_frames(float seconds){
+-  return (int64_t) (((long double)seconds)*((long double)jack_samplerate));
++static int64_t milliseconds_to_frames(float ms){
++  return (int64_t) (((long double)ms/1000.0)*((long double)jack_samplerate));
+ }
+ 
+ 
+@@ -2367,7 +2367,7 @@
+       OPTARG("--recording-time","-d"){
+         recording_time       = OPTARG_GETFLOAT();
+         start_jack();
+-        num_frames_to_record = seconds_to_frames(recording_time);
++        num_frames_to_record = milliseconds_to_frames(recording_time);
+         no_stdin             = true;
+         fixed_duration       = true;
+       }
