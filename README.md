@@ -12,7 +12,7 @@ Patches for guitarix
 
 - MinMaxScaler
 - Glib::SignalTimeout priority
--
+- jackPort connection learning
 - millisecond precision - smooth transition
 - auto vol (db-gain) 
 - auto ir preselect
