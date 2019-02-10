@@ -84,9 +84,8 @@ def CaptureDB():
       dist = '[Distance]: ' + repr(system - guitar) + ' db'
       print dist
 
-      gain = -8 + dB2Amplitude(system - guitar) 
+      gain = -11 + dB2Amplitude(system - guitar) 
       send_command('param_set 1 gain %f' % gain)
-      print gain
 
       return 0
 
