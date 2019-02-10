@@ -57,7 +57,7 @@ def CaptureDB():
     sr1 = 0
     sr2 = 0
 
-    os.system("(jack_capture -p 'PulseAudio JACK Sink:front*' -d 3 -f wav playback.wav > /dev/null 2>&1) | (jack_capture -p jack_thru:output* -d 3 -f wav guitar.wav > /dev/null 2>&1)")
+    os.system("(jack_capture_ms -p 'PulseAudio JACK Sink:front*' -d 500 -f wav playback.wav > /dev/null 2>&1) | (jack_capture_ms -p jack_thru:output* -d 500 -f wav guitar.wav > /dev/null 2>&1)")
 
     y1, sr1 = librosa.load('playback.wav')
     y2, sr2 = librosa.load('guitar.wav')
