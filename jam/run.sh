@@ -40,3 +40,7 @@ jack_connect 'effect_0:out_r' 'jack_thru:input_2'
 # convolver
 jack_connect 'effect_1:out_1' 'jack_thru:input_1'
 jack_connect 'effect_1:out_2' 'jack_thru:input_2'
+
+sleep 1
+
+python db.py
