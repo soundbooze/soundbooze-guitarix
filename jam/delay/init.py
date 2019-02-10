@@ -36,4 +36,4 @@ def send_command(command):
 send_command('add http://calf.sourceforge.net/plugins/VintageDelay 0')
 send_command('add http://gareus.org/oss/lv2/convoLV2#Stereo 1')
 send_command('param_set 1 impulse %s' % "/home/oche/uduk.wav")
-send_command('param_set 1 gain -12.0')
+send_command('param_set 1 gain -33.0')
