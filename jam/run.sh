@@ -17,6 +17,9 @@ jack_connect 'system:capture_1' 'gx_head_amp:in_0'
 jack_connect 'gx_head_fx:out_0' 'effect_1:in_1'
 jack_connect 'gx_head_fx:out_1' 'effect_1:in_2'
 
+jack_disconnect 'gx_head_fx:out_0' 'system:playback_1'
+jack_disconnect 'gx_head_fx:out_1' 'system:playback_2'
+
 # convolver -> playback
 jack_connect 'effect_1:out_1' 'system:playback_1'
 jack_connect 'effect_1:out_2' 'system:playback_2'
