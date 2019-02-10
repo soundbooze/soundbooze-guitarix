@@ -1,17 +1,63 @@
 import os
+import sys
+import signal
 import librosa
 import numpy as np
 
-def CaptureLoad():
+import socket, time
+import subprocess as sp
 
-    SILENT_THRESHOLD = -41
+# get mod-host pid
+pid = sp.check_output("pgrep mod-host; exit 0", shell=True)
+if pid == '':
+    print 'mod-host is not running'
+    exit(0)
+
+# setup socket
+s = socket.socket()
+s.connect(('127.0.0.1', 5555))
+s.settimeout(5)
+
+def check_mod_host():
+    if sp.check_output("pgrep mod-host; exit 0", shell=True) != pid:
+        print 'mod-host died'
+        exit(1)
+
+def send_command(command):
+    s.send(command)
+    print 'sent:', command
+    check_mod_host()
+
+    try:
+        resp = s.recv(1024)
+        if resp: print 'resp:', resp
+        return True
+
+    except Exception:
+        return False
+
+# ----------------------------------------------------
+
+def Initialize():  
+    signal.signal(signal.SIGINT, SignalExit)
+
+def SignalExit(signal, frame):
+    os.system("rm -f playback.wav guitar.wav")
+    sys.exit(0)
+
+def dB2Amplitude(db):
+    return pow(10, db / 20);
+		
+def CaptureDB():
+
+    SILENT_THRESHOLD = -51
 
     y1 = []
     y2 = []
     sr1 = 0
     sr2 = 0
 
-    os.system("(jack_capture -p 'PulseAudio JACK Sink:front*' -d 1 -f wav playback.wav > /dev/null 2>&1) | (jack_capture -p jack_thru:output* -d 1 -f wav guitar.wav > /dev/null 2>&1)")
+    os.system("(jack_capture -p 'PulseAudio JACK Sink:front*' -d 3 -f wav playback.wav > /dev/null 2>&1) | (jack_capture -p jack_thru:output* -d 3 -f wav guitar.wav > /dev/null 2>&1)")
 
     y1, sr1 = librosa.load('playback.wav')
     y2, sr2 = librosa.load('guitar.wav')
@@ -38,10 +84,15 @@ def CaptureLoad():
       dist = '[Distance]: ' + repr(system - guitar) + ' db'
       print dist
 
+      gain = -8 + dB2Amplitude(system - guitar) 
+      send_command('param_set 1 gain %f' % gain)
+      print gain
+
       return 0
 
-    os.system('rm -f playback.wav guitar.wav')
-
 if __name__ == "__main__":
+
+    Initialize()
+
     while (1):
-        CaptureLoad()
+        CaptureDB()
