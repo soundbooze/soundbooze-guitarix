@@ -15,6 +15,7 @@ Patches for guitarix
 -
 - auto vol (db-gain) 
 - auto ir preselect
+- auto eq /etc
 
 ## Demo
 
