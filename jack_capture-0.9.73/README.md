@@ -1,3 +1,7 @@
+## Jack Capture
+
+Milliseconds duration patch
+
 ### Creating the patch
 
 ```
