@@ -13,6 +13,7 @@ Patches for guitarix
 - MinMaxScaler
 - Glib::SignalTimeout priority
 -
+- millisecond precision - smooth transition
 - auto vol (db-gain) 
 - auto ir preselect
 - auto eq /etc
