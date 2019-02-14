@@ -15,7 +15,7 @@ Patches for guitarix
 - jackPort connection learning
 - smooth transition
 - auto vol (db-gain) 
-- auto ir preselect
+- auto ir - recommendation / nearest
 - auto eq /etc
 
 ## Demo
