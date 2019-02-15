@@ -13,5 +13,6 @@ $ patch -p1 < guitarix-0.37.3.patch
 ```
 ### Pre Headless
 
-- fixed 256
+- fixed 256 buffer
 - no MIDI input processing
+- no RPC
