@@ -11,3 +11,7 @@ Under the root source tree:
 ```
 $ patch -p1 < guitarix-0.37.3.patch
 ```
+### Pre Headless
+
+- fixed 256
+- no MIDI input processing
