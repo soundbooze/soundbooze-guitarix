@@ -1,0 +1,388 @@
+diff -Naur guitarix-0.37.3/src/gx_head/engine/gx_jack.cpp guitarix-0.37.3-patch/src/gx_head/engine/gx_jack.cpp
+--- guitarix-0.37.3/src/gx_head/engine/gx_jack.cpp	2018-07-22 11:24:50.000000000 +0700
++++ guitarix-0.37.3-patch/src/gx_head/engine/gx_jack.cpp	2019-02-15 12:33:33.152549653 +0700
+@@ -765,20 +765,12 @@
+         memcpy(self.insert_buffer, obuf, nframes*sizeof(float));
+     }
+ 
+-        // midi input processing
+-	if (self.ports.midi_input.port) {
+-	    self.engine.controller_map.compute_midi_in(
+-		jack_port_get_buffer(self.ports.midi_input.port, nframes), arg);
+-	}
+         // jack transport support
+     if ( self.transport_state != self.old_transport_state) {
+         self.engine.controller_map.process_trans(self.transport_state);
+         self.old_transport_state = self.transport_state;
+     }
+     }
+-    // midi CC output processing
+-    void *buf = self.get_midi_buffer(nframes);
+-    self.process_midi_cc(buf, nframes);
+ 
+     gx_system::measure_pause();
+     self.engine.mono_chain.post_rt_finished();
+diff -Naur guitarix-0.37.3/src/gx_head/gui/gx_main.cpp guitarix-0.37.3-patch/src/gx_head/gui/gx_main.cpp
+--- guitarix-0.37.3/src/gx_head/gui/gx_main.cpp	2018-07-22 11:24:50.000000000 +0700
++++ guitarix-0.37.3-patch/src/gx_head/gui/gx_main.cpp	2019-02-15 12:19:00.197163584 +0700
+@@ -208,159 +208,6 @@
+     }
+ }
+ 
+-
+-/****************************************************************
+- ** class ErrorPopup
+- ** show UI popup for kError messages
+- */
+-
+-class ErrorPopup {
+-private:
+-    Glib::ustring msg;
+-    bool active;
+-    Gtk::MessageDialog *dialog;
+-    void show_msg();
+-    void on_response(int);
+-public:
+-    ErrorPopup();
+-    ~ErrorPopup();
+-    void on_message(const Glib::ustring& msg, GxLogger::MsgType tp, bool plugged);
+-};
+-
+-ErrorPopup::ErrorPopup()
+-    : msg(),
+-      active(false),
+-      dialog(0) {
+-}
+-
+-ErrorPopup::~ErrorPopup() {
+-    delete dialog;
+-}
+-
+-void ErrorPopup::on_message(const Glib::ustring& msg_, GxLogger::MsgType tp, bool plugged) {
+-    if (plugged) {
+-	return;
+-    }
+-    if (tp == GxLogger::kError) {
+-	if (active) {
+-	    msg += "\n" + msg_;
+-	    if (msg.size() > 1000) {
+-		msg.substr(msg.size()-1000);
+-	    }
+-	    if (dialog) {
+-		dialog->set_message(msg);
+-	    }
+-	} else {
+-	    msg = msg_;
+-	    active = true;
+-	    show_msg();
+-	}
+-    }
+-}
+-
+-void ErrorPopup::on_response(int) {
+-    delete dialog;
+-    dialog = 0;
+-    active = false;
+-}
+-
+-void ErrorPopup::show_msg() {
+-    dialog = new Gtk::MessageDialog(msg, false, Gtk::MESSAGE_ERROR, Gtk::BUTTONS_CLOSE);
+-    dialog->set_keep_above(true);
+-    //Gtk::VBox *ma = dialog->get_message_area(); // not in Gtkmm 0.20
+-    //FIXME: no comment :-)
+-    Gtk::VBox *ma = dynamic_cast<Gtk::VBox*>(
+-	*(++dynamic_cast<Gtk::HBox*>(
+-	      *dialog->get_vbox()->get_children().begin())->get_children().begin()));
+-    // add an alignment parent to the label widget inside the message area
+-    // should better define our own dialog instead of hacking MessageDialog...
+-    Gtk::Alignment *align = new Gtk::Alignment();
+-    align->show();
+-    dynamic_cast<Gtk::Label*>(*ma->get_children().begin())->reparent(*align);
+-    ma->pack_start(*manage(align));
+-    align->set_padding(50,20,0,10);
+-    Gtk::VBox *vbox = dynamic_cast<Gtk::VBox *>(dialog->get_child());
+-    vbox->set_redraw_on_allocate(true);
+-    g_signal_connect(GTK_WIDGET(vbox->gobj()), "expose-event",
+-                     G_CALLBACK(gx_cairo::error_box_expose), NULL);
+-   // vbox->signal_expose_event().connect(
+-	//sigc::group(&gx_cairo::error_box_expose,GTK_WIDGET(vbox->gobj()),sigc::_1,(void*)0),false);
+-    dialog->set_title(_("GUITARIX ERROR"));
+-    dialog->signal_response().connect(
+-	sigc::mem_fun(*this, &ErrorPopup::on_response));
+-    dialog->show();
+-}
+-
+-/****************************************************************
+- ** class GxSplashBox
+- ** show splash screen at start up
+- */
+-
+-class GxSplashBox: public Gtk::Window {
+- public:
+-    explicit GxSplashBox();
+-    ~GxSplashBox();
+-    virtual void on_show();
+-};
+-GxSplashBox::~GxSplashBox() {}
+-
+-GxSplashBox::GxSplashBox()
+-    : Gtk::Window(Gtk::WINDOW_POPUP) {
+-    set_redraw_on_allocate(true);
+-    set_app_paintable();
+-    g_signal_connect(GTK_WIDGET(gobj()), "expose-event",
+-                     G_CALLBACK(gx_cairo::splash_expose), NULL);
+-    //signal_expose_event().connect(
+-    //    sigc::group(&gx_cairo::splash_expose, GTK_WIDGET(gobj()),
+-	//	    sigc::_1, (void*)0), false);
+-    set_decorated(false);
+-    set_type_hint(Gdk::WINDOW_TYPE_HINT_SPLASHSCREEN);
+-    set_position(Gtk::WIN_POS_CENTER );
+-    set_default_size(613, 180);
+-    show_all();
+-}
+-
+-void GxSplashBox::on_show() {
+-    Gtk::Widget::on_show();
+-    while(Gtk::Main::events_pending())
+-        Gtk::Main::iteration(false); 
+-}
+-
+-/****************************************************************
+- ** main()
+- */
+-#if 0
+-#ifndef NDEBUG
+-int debug_display_glade(gx_engine::GxEngine& engine, gx_system::CmdlineOptions& options,
+-                        gx_engine::ParamMap& pmap, const string& fname) {
+-    pmap.set_init_values();
+-    if (!options.get_rcset().empty()) {
+-	std::string rcfile = options.get_style_filepath("gx_head_"+options.get_rcset()+".rc");
+-	gtk_rc_parse(rcfile.c_str());
+-	gtk_rc_reset_styles(gtk_settings_get_default());
+-    }
+-    Gtk::Window *w = 0;
+-    gx_ui::GxUI ui;
+-    Glib::RefPtr<gx_gui::GxBuilder> bld = gx_gui::GxBuilder::create_from_file(fname, &machine);
+-    w = bld->get_first_window();
+-    gx_ui::GxUI::updateAllGuis(true);
+-    if (w) {
+-	Gtk::Main::run(*w);
+-	delete w;
+-    }
+-    return 0;
+-}
+-#endif
+-#endif
+-
+-#ifdef NDEBUG
+-// switch off GTK warnings in Release build
+-static void null_handler(const char *log_domain, GLogLevelFlags log_level,
+-                         const gchar *msg, gpointer user_data ) {
+-    return ;
+-}
+-#endif
+-
+ static void mainHeadless(int argc, char *argv[]) {
+     Glib::init();
+     Gio::init();
+@@ -397,20 +244,21 @@
+     if (need_new_preset) {
+ 	machine.create_default_scratch_preset();
+     }
++
++    gx_jack::GxJack *jack = machine.get_jack();
++    if (!jack) {
++	return;
++    }
++
++    if (jack_set_buffer_size(jack->client, 256) != 0) {
++         gx_print_warning(_("Setting Jack Buffer Size"),
++				_("Could not change latency"));
++    }
++
+     // ----------------------- Run Glib main loop ----------------------
+-    cout << "Ctrl-C to quit\n";
+     Glib::RefPtr<Glib::MainLoop> loop = Glib::MainLoop::create();
+     machine.get_jack()->shutdown.connect(sigc::mem_fun(loop.operator->(),&Glib::MainLoop::quit));
+-    int port = options.get_rpcport();
+-    if (port == RPCPORT_DEFAULT) {
+-	port = 7000;
+-    }
+-    if (port != RPCPORT_NONE) {
+-	machine.start_socket(sigc::mem_fun(loop.operator->(),&Glib::MainLoop::quit), options.get_rpcaddress(), port);
+-	loop->run();
+-    } else {
+-	loop->run();
+-    }
++	  loop->run();
+     gx_child_process::childprocs.killall();
+ }
+ 
+@@ -448,153 +296,6 @@
+     }
+ }
+ 
+-static void mainGtk(int argc, char *argv[]) {
+-    Glib::init();
+-    Gxw::init();
+-
+-    PosixSignals posixsig(true); // catch unix signals in special thread
+-    Glib::add_exception_handler(sigc::ptr_fun(exception_handler));
+-    gx_system::CmdlineOptions options;
+-    Gtk::Main main(argc, argv, options);
+-    options.process(argc, argv);
+-    GxSplashBox * Splash = NULL;
+-#ifdef NDEBUG
+-    Splash =  new GxSplashBox();
+-    g_log_set_handler("Gtk",G_LOG_LEVEL_WARNING,null_handler,NULL);
+-#endif
+-    GxExit::get_instance().signal_msg().connect(
+-	sigc::ptr_fun(gx_gui::show_error_msg));  // show fatal errors in UI
+-    ErrorPopup popup;
+-    GxLogger::get_logger().signal_message().connect(
+-	sigc::mem_fun(popup, &ErrorPopup::on_message));
+-    // ---------------- Check for working user directory  -------------
+-    bool need_new_preset;
+-    if (gx_preset::GxSettings::check_settings_dir(options, &need_new_preset)) {
+-	Gtk::MessageDialog dialog(
+-	    _("old config directory found (.gx_head)."
+-	      " state file and standard presets file have been copied to"
+-	      " the new directory (.config/guitarix).\n"
+-	      " Additional old preset files can be imported into the"
+-	      " new bank scheme by mouse drag and drop with a file"
+-	      " manager"), false, Gtk::MESSAGE_INFO, Gtk::BUTTONS_CLOSE, true);
+-	dialog.set_title("Guitarix");
+-	dialog.run();
+-    }
+-
+-    gx_engine::GxMachine machine(options);
+-#if 0
+-#ifndef NDEBUG
+-    if (argc > 1) {
+-	delete Splash;
+-	debug_display_glade(engine, options, gx_engine::parameter_map, argv[1]);
+-	return;
+-    }
+-#endif
+-#endif
+-    // ----------------------- init GTK interface----------------------
+-    MainWindow gui(machine, options, Splash, "");
+-    if (need_new_preset) {
+-	gui.create_default_scratch_preset();
+-    }
+-    // ----------------------- run GTK main loop ----------------------
+-    delete Splash;
+-    gui.run();
+-    gx_child_process::childprocs.killall();
+-}
+-
+-static void mainFront(int argc, char *argv[]) {
+-    Glib::init();
+-    Gxw::init();
+-
+-    PosixSignals posixsig(true); // catch unix signals in special thread
+-    Glib::add_exception_handler(sigc::ptr_fun(exception_handler));
+-    gx_system::CmdlineOptions options;
+-    Gtk::Main main(argc, argv, options);
+-    options.process(argc, argv);
+-    GxSplashBox * Splash = NULL;
+-#ifdef NDEBUG
+-    Splash =  new GxSplashBox();
+-    g_log_set_handler("Gtk",G_LOG_LEVEL_WARNING,null_handler,NULL);
+-#endif
+-    GxExit::get_instance().signal_msg().connect(
+-	sigc::ptr_fun(gx_gui::show_error_msg));  // show fatal errors in UI
+-    ErrorPopup popup;
+-    GxLogger::get_logger().signal_message().connect(
+-	sigc::mem_fun(popup, &ErrorPopup::on_message));
+-    // ---------------- Check for working user directory  -------------
+-    bool need_new_preset;
+-    if (gx_preset::GxSettings::check_settings_dir(options, &need_new_preset)) {
+-	Gtk::MessageDialog dialog(
+-	    _("old config directory found (.gx_head)."
+-	      " state file and standard presets file have been copied to"
+-	      " the new directory (.config/guitarix).\n"
+-	      " Additional old preset files can be imported into the"
+-	      " new bank scheme by mouse drag and drop with a file"
+-	      " manager"), false, Gtk::MESSAGE_INFO, Gtk::BUTTONS_CLOSE, true);
+-	dialog.set_title("Guitarix");
+-	dialog.run();
+-    }
+-
+-    Glib::ustring title;
+-#ifdef HAVE_AVAHI
+-    if (options.get_rpcaddress().empty() && options.get_rpcport() == RPCPORT_DEFAULT) {
+-	SelectInstance si(options, Splash);
+-	if (Splash) {
+-	    Splash->show();
+-	}
+-	Glib::ustring a;
+-	int port;
+-	Glib::ustring name;
+-	Glib::ustring host;
+-	if (!si.get_address_port(a, port, name, host)) {
+-	    cerr << "Failed to get address" << endl;
+-	    return;
+-	}
+-	options.set_rpcaddress(a);
+-	options.set_rpcport(port);
+-	title = Glib::ustring::compose("%1 / %2:%3", name, host, port);
+-    }
+-#endif // HAVE_AVAHI
+-    if (options.get_rpcport() == RPCPORT_DEFAULT) {
+-	options.set_rpcport(7000);
+-    }
+-    if (options.get_rpcaddress().empty()) {
+-	options.set_rpcaddress("localhost");
+-    }
+-    if (title.empty()) {
+-	title = Glib::ustring::compose("%1:%2", options.get_rpcaddress(), options.get_rpcport());
+-    }
+-    gx_engine::GxMachineRemote machine(options);
+-
+-    // ----------------------- init GTK interface----------------------
+-    MainWindow gui(machine, options, Splash, title);
+-    if (need_new_preset) {
+-	gui.create_default_scratch_preset();
+-    }
+-    // ----------------------- run GTK main loop ----------------------
+-    delete Splash;
+-    machine.set_init_values();
+-    gui.run();
+-}
+-
+-static bool is_headless(int argc, char *argv[]) {
+-    for (int i = 0; i < argc; ++i) {
+-	if (strcmp(argv[i], "-N") == 0 || strcmp(argv[i], "--nogui") == 0) {
+-	    return true;
+-	}
+-    }
+-    return false;
+-}
+-
+-static bool is_frontend(int argc, char *argv[]) {
+-    for (int i = 0; i < argc; ++i) {
+-	if (strcmp(argv[i], "-G") == 0 || strcmp(argv[i], "--onlygui") == 0) {
+-	    return true;
+-	}
+-    }
+-    return false;
+-}
+-
+ int main(int argc, char *argv[]) {
+ #ifdef DISABLE_NLS
+ // break
+@@ -613,13 +314,7 @@
+ 	    Glib::thread_init();
+ 	}
+ #endif
+-	if (is_headless(argc, argv)) {
+ 	    mainHeadless(argc, argv);
+-	} else if (is_frontend(argc, argv)) {
+-	    mainFront(argc, argv);
+-	} else {
+-	    mainGtk(argc, argv);
+-	}
+     } catch (...) {
+ 	exception_handler();
+     }
