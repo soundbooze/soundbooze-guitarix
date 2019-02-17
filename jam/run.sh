@@ -3,10 +3,10 @@
 killall guitarix > /dev/null 2>&1
 killall jack_thru > /dev/null 2>&1
 
-guitarix &
+guitarix-headless -b F:9 &
 jack_thru &
 
-sleep 3
+sleep 2
 
 jack_disconnect 'jack_thru:output_1' 'system:playback_1'
 jack_disconnect 'jack_thru:output_2' 'system:playback_2'
