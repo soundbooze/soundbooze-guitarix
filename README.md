@@ -1,4 +1,4 @@
-# Guitarix -Patches for guitarix 
+# Guitarix - Patches for guitarix 
 
 ![alt text](https://raw.githubusercontent.com/soundbooze/soundbooze-guitarix/master/logo.png "Home")
 
