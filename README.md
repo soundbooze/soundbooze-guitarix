@@ -1,8 +1,9 @@
-# Guitarix - Live Display Visualization
+# Guitarix -Patches for guitarix 
 
 ![alt text](https://raw.githubusercontent.com/soundbooze/soundbooze-guitarix/master/logo.png "Home")
 
-Patches for guitarix 
+- Live display visualization
+- Headless
 
 ## Jam
 
