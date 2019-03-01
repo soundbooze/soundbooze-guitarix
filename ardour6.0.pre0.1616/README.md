@@ -10,7 +10,7 @@ $ diff -u disk_writer.cc disk_writer_fix.cc > ~/ardour6.0.pre0.1616.patch
 
 ### Applying the patch
 
-Under the ardour's ardour/libs/ardour:
+Under ardour/libs/ardour:
 
 ```
 $ patch < ~/ardour6.0.pre0.1616.patch
