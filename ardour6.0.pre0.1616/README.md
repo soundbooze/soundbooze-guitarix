@@ -1,6 +1,6 @@
 ## Ardour 6.0
 
-MIDI fanout, audio recording patch
+MIDI track fan out and audio recording patch
 
 ### Creating the patch
 
