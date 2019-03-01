@@ -5,13 +5,13 @@ MIDI track fan out and audio recording patch
 ### Creating the patch
 
 ```
-$ diff -Naur jack_capture jack_capture_patch > jack_capture-0.9.73.patch
+$ diff -u disk_writer.cc disk_writer_fix.cc > ~/ardour6.0.pre0.1616.patch
 ```
 
 ### Applying the patch
 
-Under the root source tree:
+Under the ardour's ardour/libs/ardour:
 
 ```
-$ patch -p1 < jack_capture-0.9.73.patch
+$ patch < ~/ardour6.0.pre0.1616.patch
 ```
